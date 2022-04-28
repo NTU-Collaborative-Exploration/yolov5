@@ -7,6 +7,7 @@ import math
 import os
 from copy import copy
 from pathlib import Path
+from urllib.error import URLError
 
 import cv2
 import matplotlib
@@ -17,9 +18,9 @@ import seaborn as sn
 import torch
 from PIL import Image, ImageDraw, ImageFont
 
-from utils.general import (CONFIG_DIR, FONT, LOGGER, Timeout, check_font, check_requirements, clip_coords,
+from yolov5.utils.general import (CONFIG_DIR, FONT, LOGGER, Timeout, check_font, check_requirements, clip_coords,
                            increment_path, is_ascii, is_chinese, try_except, xywh2xyxy, xyxy2xywh)
-from utils.metrics import fitness
+from yolov5.utils.metrics import fitness
 
 # Settings
 RANK = int(os.getenv('RANK', -1))
@@ -55,11 +56,13 @@ def check_pil_font(font=FONT, size=10):
     try:
         return ImageFont.truetype(str(font) if font.exists() else font.name, size)
     except Exception:  # download if missing
-        check_font(font)
         try:
+            check_font(font)
             return ImageFont.truetype(str(font), size)
         except TypeError:
             check_requirements('Pillow>=8.4.0')  # known issue https://github.com/ultralytics/yolov5/issues/5374
+        except URLError:  # not online
+            return ImageFont.load_default()
 
 
 class Annotator:
